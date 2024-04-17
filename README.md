@@ -1,6 +1,6 @@
 # todolist
 
-A simplre to do list in Flutter.
+A simple to do list in Flutter.
 
 ## Getting Started
 
