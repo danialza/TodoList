@@ -20,6 +20,8 @@ void main() async {
 }
 
 const Color primaryColor = Color(0xff794CFF);
+Color normalPriority = const Color(0xffF09819);
+Color lowpriority = const Color(0xff3BE1F1);
 
 class MyApp extends StatelessWidget {
   final primaryTextColor = Color(0xff1D2830);
@@ -190,6 +192,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 class TaskItem extends StatefulWidget {
+  static const double height = 84;
   const TaskItem({
     super.key,
     required this.task,
@@ -205,6 +208,19 @@ class _TaskItemState extends State<TaskItem> {
   @override
   Widget build(BuildContext context) {
     ThemeData themData = Theme.of(context);
+    final Color priorityColor;
+
+    switch (widget.task.priority) {
+      case Priority.low:
+        priorityColor = lowpriority;
+        break;
+      case Priority.normal:
+        priorityColor = normalPriority;
+        break;
+      case Priority.high:
+        priorityColor = primaryColor;
+        break;
+    }
     return InkWell(
       onTap: () {
         setState(() {
@@ -212,9 +228,9 @@ class _TaskItemState extends State<TaskItem> {
         });
       },
       child: Container(
-        padding: EdgeInsets.only(left: 16, right: 16),
+        padding: EdgeInsets.only(left: 16, right: 0),
         margin: EdgeInsets.only(top: 8),
-        height: 84,
+        height: TaskItem.height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           color: themData.colorScheme.surface,
@@ -236,8 +252,8 @@ class _TaskItemState extends State<TaskItem> {
               ),
             ),
             Container(
-              width: 3,
-              color: Colors.black,
+              width: 5,
+              color: priorityColor,
             ),
           ],
         ),

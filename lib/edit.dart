@@ -1,15 +1,21 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:todolist/data.dart';
 import 'package:todolist/main.dart';
 
-class EditTaskScreen extends StatelessWidget {
-  final TextEditingController _controller = TextEditingController();
+class EditTaskScreen extends StatefulWidget {
   final Task task;
 
   EditTaskScreen({super.key, required this.task});
+
+  @override
+  State<EditTaskScreen> createState() => _EditTaskScreenState();
+}
+
+class _EditTaskScreenState extends State<EditTaskScreen> {
+  final TextEditingController _controller = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     final ThemeData themeData = Theme.of(context);
@@ -25,7 +31,7 @@ class EditTaskScreen extends StatelessWidget {
           onPressed: () {
             final task = Task();
             task.name = _controller.text;
-            task.priority = Priority.low;
+            task.priority = widget.task.priority;
             if (task.isInBox) {
               task.save();
             } else {
@@ -56,36 +62,58 @@ class EditTaskScreen extends StatelessWidget {
                 Flexible(
                     flex: 1,
                     child: PriorityCheckBox(
+                      onTap: () {
+                        setState(() {
+                          widget.task.priority = Priority.high;
+                        });
+                      },
                       label: 'High',
                       color: primaryColor,
-                      isSelected: task.priority == Priority.high,
+                      isSelected: widget.task.priority == Priority.high,
                     )),
-                SizedBox(
+                const SizedBox(
                   width: 8,
                 ),
                 Flexible(
                     flex: 1,
                     child: PriorityCheckBox(
+                      onTap: () {
+                        setState(() {
+                          widget.task.priority = Priority.normal;
+                        });
+                      },
                       label: 'Normal',
-                      color: Color(0xffF09819),
-                      isSelected: task.priority == Priority.normal,
+                      color: normalPriority,
+                      isSelected: widget.task.priority == Priority.normal,
                     )),
-                SizedBox(
+                const SizedBox(
                   width: 8,
                 ),
                 Flexible(
                     flex: 1,
                     child: PriorityCheckBox(
+                      onTap: () {
+                        setState(() {
+                          widget.task.priority = Priority.low;
+                        });
+                      },
                       label: 'Low',
-                      color: Color(0xff3BE1F1),
-                      isSelected: task.priority == Priority.low,
+                      color: lowpriority,
+                      isSelected: widget.task.priority == Priority.low,
                     ))
               ],
             ),
             TextField(
               controller: _controller,
-              decoration:
-                  InputDecoration(label: Text('Add Task For Today ...')),
+              decoration: const InputDecoration(
+                  label: Text(
+                'Add Task For Today ...',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  letterSpacing: 0.5,
+                ),
+              )),
             )
           ],
         ),
@@ -98,30 +126,70 @@ class PriorityCheckBox extends StatelessWidget {
   final String label;
   final Color color;
   final bool isSelected;
+  final GestureTapCallback onTap;
 
   const PriorityCheckBox(
       {super.key,
       required this.label,
       required this.color,
-      required this.isSelected});
+      required this.isSelected,
+      required this.onTap});
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(width: 1, color: Colors.grey),
-          color: secondaryTextColor.withOpacity(.2)),
-      child: Stack(
-        children: [
-          Center(
-            child: text(label),
-          ),
-          MyCheckBox(value: isSelected),
-        ],
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(width: 1, color: Colors.grey),
+            color: secondaryTextColor.withOpacity(.2)),
+        child: Stack(
+          children: [
+            Center(
+              child: Text(label),
+            ),
+            Positioned(
+              right: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _PriorityCheckBoxShape(
+                  value: isSelected,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
 
-  text(String label) {}
+class _PriorityCheckBoxShape extends StatelessWidget {
+  final bool value;
+  final Color color;
+
+  const _PriorityCheckBoxShape(
+      {super.key, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(9),
+        color: color,
+      ),
+      child: value
+          ? Icon(
+              CupertinoIcons.check_mark,
+              size: 12,
+              color: Colors.white,
+            )
+          : null,
+    );
+  }
 }
