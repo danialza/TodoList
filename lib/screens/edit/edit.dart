@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:todolist/data.dart';
+import 'package:provider/provider.dart';
+import 'package:todolist/data/data.dart';
+import 'package:todolist/data/repo/repository.dart';
 import 'package:todolist/main.dart';
 
 class EditTaskScreen extends StatefulWidget {
@@ -14,7 +16,8 @@ class EditTaskScreen extends StatefulWidget {
 }
 
 class _EditTaskScreenState extends State<EditTaskScreen> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.task.name);
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +32,13 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
-            final task = Task();
-            task.name = _controller.text;
-            task.priority = widget.task.priority;
-            if (task.isInBox) {
-              task.save();
-            } else {
-              final Box<Task> box = Hive.box(taskBoxName);
-              box.add(task);
-            }
+            widget.task.name = _controller.text;
+            widget.task.priority = widget.task.priority;
+
+            final repository =
+                Provider.of<Repository<Task>>(context, listen: false);
+            repository.createOrUpdate(widget.task);
+
             Navigator.pop(context);
           },
           label: const Row(
