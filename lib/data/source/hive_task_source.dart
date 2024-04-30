@@ -39,6 +39,8 @@ class HiveTaskDataSource implements DataSource<Task> {
 
   @override
   Future<List<Task>> getAll({String searchKeyword = ''}) async {
-    return box.values.toList();
+    return box.values
+        .where((element) => element.name.contains(searchKeyword))
+        .toList();
   }
 }
