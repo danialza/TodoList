@@ -1,17 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:todolist/data/data.dart';
 import 'package:todolist/data/repo/repository.dart';
 import 'package:todolist/screens/edit/edit.dart';
 import 'package:todolist/main.dart';
+import 'package:todolist/screens/home/bloc/task_list_bloc.dart';
 import 'package:todolist/widgets.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({Key? key}) : super(key: key);
   final TextEditingController controller = TextEditingController();
-  final ValueNotifier<String> searchKeywordNotifier = ValueNotifier('');
   @override
   Widget build(BuildContext context) {
     final box = Hive.box<Task>(taskBoxName);
@@ -25,96 +26,96 @@ class HomeScreen extends StatelessWidget {
                       task: Task(),
                     )));
           },
-          label: Row(
-            children: const [Text('Add New Task'), Icon(CupertinoIcons.add)],
+          label: const Row(
+            children: [Text('Add New Task'), Icon(CupertinoIcons.add)],
           )),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              height: 110,
-              decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                themeData.colorScheme.primary,
-                Colors.black,
-              ])),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'To Do List',
-                          style: themeData.textTheme.headline6!
-                              .apply(color: themeData.colorScheme.onPrimary),
-                        ),
-                        Icon(
-                          CupertinoIcons.share,
-                          color: themeData.colorScheme.onPrimary,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 16,
-                    ),
-                    Container(
-                      height: 38,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(19),
-                        color: themeData.colorScheme.onPrimary,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                          )
+      body: BlocProvider<TaskListBloc>(
+        create: (context) => TaskListBloc(context.read<Repository<Task>>()),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                height: 110,
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                  themeData.colorScheme.primary,
+                  Colors.black,
+                ])),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'To Do List',
+                            style: themeData.textTheme.headline6!
+                                .apply(color: themeData.colorScheme.onPrimary),
+                          ),
+                          Icon(
+                            CupertinoIcons.share,
+                            color: themeData.colorScheme.onPrimary,
+                          ),
                         ],
                       ),
-                      child: TextField(
-                        onChanged: (value) {
-                          searchKeywordNotifier.value = controller.text;
-                        },
-                        controller: controller,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(CupertinoIcons.search),
-                          label: Text('Search tasks...'),
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      Container(
+                        height: 38,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(19),
+                          color: themeData.colorScheme.onPrimary,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                            )
+                          ],
+                        ),
+                        child: TextField(
+                          onChanged: (value) {
+                            context
+                                .read<TaskListBloc>()
+                                .add(TaskListSearch(value));
+                          },
+                          controller: controller,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(CupertinoIcons.search),
+                            label: Text('Search tasks...'),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: ValueListenableBuilder<String>(
-                valueListenable: searchKeywordNotifier,
+              Expanded(child: Consumer<Repository<Task>>(
                 builder: (context, value, child) {
-                  return Consumer<Repository<Task>>(
-                    builder: (context, repository, child) {
-                      return FutureBuilder<List<Task>>(
-                          future:
-                              repository.getAll(searchKeyword: controller.text),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              if (snapshot.data!.isNotEmpty) {
-                                return TaskList(
-                                    items: snapshot.data!,
-                                    themeData: themeData);
-                              } else {
-                                return EmptyState();
-                              }
-                            } else {
-                              return const CircularProgressIndicator();
-                            }
-                          });
+                  context.read<TaskListBloc>().add(TaskListStarted());
+                  return BlocBuilder<TaskListBloc, TaskListState>(
+                    builder: (context, state) {
+                      if (state is TaskListSuccess) {
+                        return TaskList(
+                            items: state.items, themeData: themeData);
+                      } else if (state is TaskListEmpty) {
+                        return const EmptyState();
+                      } else if (state is TaskListLoading ||
+                          state is TaskListInitial) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (state is TaskListError) {
+                        return Center(child: Text(state.errorMessage));
+                      } else {
+                        throw Exception('State is not valid.');
+                      }
                     },
                   );
                 },
-              ),
-            ),
-          ],
+              )),
+            ],
+          ),
         ),
       ),
     );
@@ -164,12 +165,10 @@ class TaskList extends StatelessWidget {
                   textColor: secondaryTextColor,
                   elevation: 0,
                   onPressed: () {
-                    final taskRepository =
-                        Provider.of<Repository<Task>>(context, listen: false);
-                    taskRepository.deleteAll();
+                    context.read<TaskListBloc>().add(TaskListDeleteAll());
                   },
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Text('Delete All'),
                       SizedBox(
                         width: 4,
